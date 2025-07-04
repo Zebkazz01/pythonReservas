@@ -27,9 +27,7 @@
     <div class="navbar-container">
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container-fluid">
-          <a class="navbar-brand" href="{% url 'home'%}"
-            >CHAPP-Inn Hola bebes</a
-          >
+          <a class="navbar-brand" href="{% url 'home'%}">CHAPP-Inn Reservas</a>
           <button
             class="navbar-toggler"
             type="button"
@@ -49,23 +47,16 @@
                 >
               </li>
               <li class="nav-item">
-                <a
-                  class="nav-link active btn btn-primary"
-                  href="{% url 'search'%}"
-                  >Nueva reserva</a
-                >
+                <a class="nav-link" href="{% url 'rooms'%}">Habitaciones</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'dashboard'%}">Dashboard</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'rooms'%}">Habitaciones</a>
               </li>
             </ul>
             <form
               action="{% url 'booking_search'%}"
               method="GET"
-              class="d-flex"
+              class="d-flex mr-2"
             >
               <input
                 class="form-control me-2"
@@ -75,14 +66,49 @@
                 placeholder="Nombre o Localizador"
                 aria-label="Search"
               />
-              <button class="btn btn-outline-light" type="submit">
+              <button class="btn btn-outline-light me-2" type="submit">
                 Buscar
               </button>
+              {% if filter %}
+              <a href="{% url 'home' %}" class="btn btn-secondary me-2"
+                >Limpiar</a
+              >
+              {% endif %}
             </form>
+            <a class="btn btn-primary me-2" href="{% url 'search'%}"
+              >Nueva reserva</a
+            >
           </div>
         </div>
       </nav>
     </div>
+
+    <!-- Messages -->
+    <div class="container-xl mt-3">
+      {% if messages %} {% for message in messages %}
+      <div
+        class="alert alert-{{ message.tags }} alert-dismissible fade show"
+        role="alert"
+      >
+        {% if message.tags == 'success' %}
+        <i class="bi bi-check-circle-fill"></i>
+        {% elif message.tags == 'error' %}
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        {% elif message.tags == 'warning' %}
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        {% elif message.tags == 'info' %}
+        <i class="bi bi-info-circle-fill"></i>
+        {% endif %} {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %}
+    </div>
+
     <div class="container-xl">{% block content%} {% endblock %}</div>
   </body>
 </html>

@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.db.models import F, Q, Count, Sum
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
@@ -158,6 +159,59 @@ class EditBookingView(View):
             return redirect("/")
 
 
+class EditBookingDatesView(View):
+    def get(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        
+        form = EditBookingDatesForm(initial={
+            'checkin': booking.checkin,
+            'checkout': booking.checkout
+        })
+        
+        context = {
+            'booking': booking,
+            'form': form
+        }
+        return render(request, "edit_booking_dates.html", context)
+
+    @method_decorator(ensure_csrf_cookie)
+    def post(self, request, pk):
+        booking = Booking.objects.get(id=pk)
+        form = EditBookingDatesForm(request.POST)
+        
+        if form.is_valid():
+            new_checkin = form.cleaned_data['checkin']
+            new_checkout = form.cleaned_data['checkout']
+            
+            if new_checkin >= new_checkout:
+                form.add_error(None, 'La fecha de entrada debe ser anterior a la fecha de salida.')
+            else:
+                overlapping_bookings = (Booking.objects
+                                      .filter(room=booking.room)
+                                      .filter(checkin__lt=new_checkout, checkout__gt=new_checkin)
+                                      .exclude(id=booking.id) 
+                                      .exclude(state="DEL"))
+                
+                if overlapping_bookings.exists():
+                    form.add_error(None, 'No hay disponibilidad para las fechas seleccionadas')
+                else:
+                    booking.checkin = new_checkin
+                    booking.checkout = new_checkout
+                    total_days = (new_checkout - new_checkin).days
+                    booking.total = total_days * booking.room.room_type.price
+                    
+                    booking.save()
+                
+                    messages.success(request, f'Las fechas de la reserva {booking.code} han sido actualizadas exitosamente.')
+                    return redirect("/")
+        
+        context = {
+            'booking': booking,
+            'form': form
+        }
+        return render(request, "edit_booking_dates.html", context)
+
+
 class DashboardView(View):
     def get(self, request):
         from datetime import date, time, datetime
@@ -186,11 +240,20 @@ class DashboardView(View):
                     .exclude(state="DEL")
                     .aggregate(Sum('total')))
 
+        confirmed_bookings = (Booking.objects
+                             .filter(checkin__lte=today, checkout__gte=today)
+                             .exclude(state="DEL")
+                             .values("id")).count()
+        
+        total_rooms = Room.objects.count()
+        occupancy_percentage = (confirmed_bookings / total_rooms * 100) if total_rooms > 0 else 0
+
         dashboard = {
             'new_bookings': new_bookings,
             'incoming_guests': incoming,
             'outcoming_guests': outcoming,
-            'invoiced': invoiced
+            'invoiced': invoiced,
+            'occupancy_percentage': occupancy_percentage
         }
 
         context = {'dashboard': dashboard}
@@ -201,15 +264,27 @@ class RoomDetailsView(View):
     def get(self, request, pk):
         room = Room.objects.get(id=pk)
         bookings = room.booking_set.all()
+        from_page = request.GET.get('from', 'home') 
+        
         context = {
             'room': room,
-            'bookings': bookings
+            'bookings': bookings,
+            'from_page': from_page
         }
         return render(request, "room_detail.html", context)
 
 
 class RoomsView(View):
     def get(self, request):
-        rooms = Room.objects.all().values("name", "room_type__name", "id")
-        context = {'rooms': rooms}
+        room_filter = request.GET.get('room_filter', '')
+        
+        if room_filter:
+            rooms = Room.objects.filter(name__icontains=room_filter).values("name", "room_type__name", "id")
+        else:
+            rooms = Room.objects.all().values("name", "room_type__name", "id")
+        
+        context = {
+            'rooms': rooms,
+            'room_filter': room_filter
+        }
         return render(request, "rooms.html", context)

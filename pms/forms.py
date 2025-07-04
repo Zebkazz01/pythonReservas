@@ -56,3 +56,36 @@ class BookingFormExcluded(ModelForm):
             'total': forms.HiddenInput(),
             'state': forms.HiddenInput(),
         }
+
+
+class EditBookingDatesForm(ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['checkin', 'checkout']
+        labels = {
+            'checkin': 'Fecha de entrada',
+            'checkout': 'Fecha de salida'
+        }
+        widgets = {
+            'checkin': forms.DateInput(attrs={
+                'type': 'date', 
+                'class': 'form-control',
+                'min': datetime.today().strftime('%Y-%m-%d')
+            }),
+            'checkout': forms.DateInput(attrs={
+                'type': 'date', 
+                'class': 'form-control',
+                'min': datetime.today().strftime('%Y-%m-%d')
+            }),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        checkin = cleaned_data.get('checkin')
+        checkout = cleaned_data.get('checkout')
+        
+        if checkin and checkout:
+            if checkin >= checkout:
+                raise forms.ValidationError('La fecha de entrada debe ser anterior a la fecha de salida.')
+        
+        return cleaned_data

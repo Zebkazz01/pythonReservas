@@ -1,19 +1,38 @@
-{% extends "main.html"%}
-
-{% block content %}
+{% extends "main.html"%} {% block content %}
 <h1>Habitaciones del hotel</h1>
-{% for room in rooms%}
-<div class="row card mt-3 mb-3 hover-card bg-tr-250">
-    <div class="col p-3">
-        <div class="">
-            {{room.name}} ({{room.room_type__name}})
-        </div>
-        <div>
-            <a href="{% url 'room_details' pk=room.id%}">Ver detalles</a>
-        </div>
-        
-    </div>
-    
+
+<div class="row mb-3">
+  <div class="col-md-6">
+    <form method="get" class="d-flex">
+      <input
+        type="text"
+        name="room_filter"
+        class="form-control me-2"
+        placeholder="Buscar habitación por nombre..."
+        value="{{ room_filter }}"
+      />
+      <button type="submit" class="btn btn-primary col-md-3">
+        <i class="bi bi-search"></i> Filtrar
+      </button>
+      {% if room_filter %}
+      <a href="{% url 'rooms' %}" class="btn btn-secondary ms-2 col-md-3"
+        ><i class="bi bi-x"></i> Limpiar</a
+      >
+      {% endif %}
+    </form>
+  </div>
 </div>
-{% endfor %}
-{% endblock content%}
+<div class="col-md-12">
+  {% for room in rooms%}
+  <div class="row card mt-3 mb-3 hover-card bg-tr-250">
+    <div class="col p-3">
+      <div class="">{{room.name}} ({{room.room_type__name}})</div>
+      <div>
+        <a href="{% url 'room_details' pk=room.id %}?from=rooms">
+          ><i class="bi bi-info-circle"></i> Ver detalles</a
+        >
+      </div>
+    </div>
+  </div>
+  {% endfor %} {% endblock content%}
+</div>
