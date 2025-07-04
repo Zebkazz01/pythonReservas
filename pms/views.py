@@ -264,9 +264,12 @@ class RoomDetailsView(View):
     def get(self, request, pk):
         room = Room.objects.get(id=pk)
         bookings = room.booking_set.all()
+        from_page = request.GET.get('from', 'home') 
+        
         context = {
             'room': room,
-            'bookings': bookings
+            'bookings': bookings,
+            'from_page': from_page
         }
         return render(request, "room_detail.html", context)
 

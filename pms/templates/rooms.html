@@ -28,7 +28,7 @@
     <div class="col p-3">
       <div class="">{{room.name}} ({{room.room_type__name}})</div>
       <div>
-        <a href="{% url 'room_details' pk=room.id%}"
+        <a href="{% url 'room_details' pk=room.id %}?from=rooms">
           ><i class="bi bi-info-circle"></i> Ver detalles</a
         >
       </div>

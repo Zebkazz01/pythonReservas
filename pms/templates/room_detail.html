@@ -4,10 +4,10 @@
   <div class="card-header d-flex justify-content-start align-items-center">
     <a
       class="btn btn-outline-danger me-3"
-      title="Volver a la lista de reservas"
-      href="{% if page == 'rooms' %}{% url 'rooms' %}{% else %}{% url 'home' %}{% endif %}"
+      title="{% if from_page == 'rooms' %}Volver a habitaciones{% else %}Volver a reservas{% endif %}"
+      href="{% if from_page == 'rooms' %}{% url 'rooms' %}{% else %}{% url 'home' %}{% endif %}"
     >
-      <i class="bi bi-arrow-left"></i> Volver
+      <i class="bi bi-arrow-left"></i> {% if from_page == 'rooms' %}Volver a habitaciones{% else %}Volver a reservas{% endif %}
     </a>
 
     <h3>Habitación {{room.name}}</h3>
