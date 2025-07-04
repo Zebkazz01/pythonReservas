@@ -2,6 +2,21 @@
 
 {% block content %}
 <h1>Habitaciones del hotel</h1>
+
+<!-- Formulario de filtro -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" class="d-flex">
+            <input type="text" name="room_filter" class="form-control me-2" 
+                   placeholder="Buscar habitación por nombre..." 
+                   value="{{ room_filter }}">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            {% if room_filter %}
+                <a href="{% url 'rooms' %}" class="btn btn-secondary ms-2">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
 {% for room in rooms%}
 <div class="row card mt-3 mb-3 hover-card bg-tr-250">
     <div class="col p-3">

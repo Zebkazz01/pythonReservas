@@ -200,3 +200,98 @@ class ViewsBasicTest(TestCase):
                     self.assertLess(response.status_code, 500)  # No error 500
                 except Exception as e:
                     self.fail(f"URL '{url}' caused an exception: {e}")
+
+
+class RoomFilterTestCase(TestCase):
+    """Tests para la funcionalidad de filtro de habitaciones"""
+    
+    def setUp(self):
+        """Configurar datos de prueba"""
+        from .models import Room, Room_type
+        
+        self.client = Client()
+        
+        # Crear tipos de habitación
+        self.room_type_individual = Room_type.objects.create(
+            name="Individual",
+            price=20.0,
+            max_guests=1
+        )
+        
+        self.room_type_doble = Room_type.objects.create(
+            name="Doble",
+            price=30.0,
+            max_guests=2
+        )
+        
+        # Crear habitaciones de prueba
+        self.room1 = Room.objects.create(
+            room_type=self.room_type_individual,
+            name="Room 1.1",
+            description="Habitación individual 1.1"
+        )
+        
+        self.room2 = Room.objects.create(
+            room_type=self.room_type_individual,
+            name="Room 1.2",
+            description="Habitación individual 1.2"
+        )
+        
+        self.room3 = Room.objects.create(
+            room_type=self.room_type_doble,
+            name="Room 2.1",
+            description="Habitación doble 2.1"
+        )
+        
+        self.room4 = Room.objects.create(
+            room_type=self.room_type_doble,
+            name="Suite Executive",
+            description="Suite ejecutiva"
+        )
+    
+    def test_rooms_view_without_filter(self):
+        """Test que la vista de habitaciones muestra todas las habitaciones sin filtro"""
+        response = self.client.get(reverse('rooms'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['rooms']), 4)
+        self.assertEqual(response.context['room_filter'], '')
+    
+    def test_rooms_view_with_filter_room_1(self):
+        """Test filtro por 'Room 1' debe mostrar Room 1.1 y Room 1.2"""
+        response = self.client.get(reverse('rooms'), {'room_filter': 'Room 1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['rooms']), 2)
+        self.assertEqual(response.context['room_filter'], 'Room 1')
+        
+        room_names = [room['name'] for room in response.context['rooms']]
+        self.assertIn('Room 1.1', room_names)
+        self.assertIn('Room 1.2', room_names)
+        self.assertNotIn('Room 2.1', room_names)
+        self.assertNotIn('Suite Executive', room_names)
+    
+    def test_rooms_view_with_filter_suite(self):
+        """Test filtro por 'Suite' debe mostrar solo Suite Executive"""
+        response = self.client.get(reverse('rooms'), {'room_filter': 'Suite'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['rooms']), 1)
+        self.assertEqual(response.context['room_filter'], 'Suite')
+        
+        room_names = [room['name'] for room in response.context['rooms']]
+        self.assertIn('Suite Executive', room_names)
+    
+    def test_rooms_view_with_filter_no_results(self):
+        """Test filtro que no coincide con ninguna habitación"""
+        response = self.client.get(reverse('rooms'), {'room_filter': 'NoExiste'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['rooms']), 0)
+        self.assertEqual(response.context['room_filter'], 'NoExiste')
+    
+    def test_rooms_view_filter_case_insensitive(self):
+        """Test que el filtro no distingue mayúsculas y minúsculas"""
+        response = self.client.get(reverse('rooms'), {'room_filter': 'room 1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['rooms']), 2)
+        
+        room_names = [room['name'] for room in response.context['rooms']]
+        self.assertIn('Room 1.1', room_names)
+        self.assertIn('Room 1.2', room_names)
