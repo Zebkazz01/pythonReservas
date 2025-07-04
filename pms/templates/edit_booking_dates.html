@@ -1,0 +1,219 @@
+{% extends "main.html" %} {% load static %} {% block title %}Editar Fechas de
+Reserva - {{ booking.code }}{% endblock %} {% block content %}
+<div class="container my-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="mb-0">Editar Fechas de Reserva</h3>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <h5>Información de la Reserva</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Huésped:</strong> {{ booking.customer.name }}<br />
+                <strong>Habitación:</strong> {{ booking.room.name }}<br />
+                <strong>Total:</strong> €{{ booking.total }}
+              </div>
+              <div class="col-md-6">
+                <strong>Check-in actual:</strong> {{ booking.checkin }}<br />
+                <strong>Check-out actual:</strong> {{ booking.checkout }}<br />
+                <strong>Huéspedes:</strong> {{ booking.guests }}
+              </div>
+            </div>
+          </div>
+
+          <hr />
+
+          <form method="post" id="edit-dates-form">
+            {% csrf_token %} {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label
+                    for="{{ form.checkin.id_for_label }}"
+                    class="form-label"
+                  >
+                    Nueva fecha de entrada
+                  </label>
+                  {{ form.checkin }} {% if form.checkin.errors %}
+                  <div class="text-danger">{{ form.checkin.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label
+                    for="{{ form.checkout.id_for_label }}"
+                    class="form-label"
+                  >
+                    Nueva fecha de salida
+                  </label>
+                  {{ form.checkout }} {% if form.checkout.errors %}
+                  <div class="text-danger">{{ form.checkout.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle"></i>
+                  <strong>Nota:</strong> El total se recalculará automáticamente
+                  según las nuevas fechas y el precio de la habitación
+                  (€{{booking.room.room_type.price }} por noche).
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a class="btn btn-outline-danger" href="{% url 'home' %}"
+                ><i class="bi bi-arrow-left"></i> Cancelar edición</a
+              >
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check"></i> Guardar cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div
+  class="modal fade"
+  id="confirmModal"
+  tabindex="-1"
+  aria-labelledby="confirmModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmModalLabel">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          Confirmar cambio de fechas
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>
+          <strong
+            >¿Está seguro de que desea cambiar las fechas de la reserva?</strong
+          >
+        </p>
+
+        <div class="alert alert-info">
+          <div class="row">
+            <div class="col-6">
+              <strong>Fechas actuales:</strong><br />
+              <i class="bi bi-box-arrow-in-right"></i> {{ booking.checkin }}<br />
+              <i class="bi bi-box-arrow-right"></i> {{ booking.checkout }}
+            </div>
+            <div class="col-6">
+              <strong>Nuevas fechas:</strong><br />
+              <i class="bi bi-box-arrow-in-right"></i>
+              <span id="new-checkin-display"></span><br />
+              <i class="bi bi-box-arrow-right"></i>
+              <span id="new-checkout-display"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <i class="bi bi-info-circle"></i>
+          <strong>Importante:</strong> El total de la reserva será recalculado
+          automáticamente según las nuevas fechas.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="confirm-changes">
+          <i class="bi bi-check-circle"></i> Sí, cambiar fechas
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let formToSubmit = null;
+  document
+    .getElementById("edit-dates-form")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const checkinInput = document.getElementById("id_checkin");
+      const checkoutInput = document.getElementById("id_checkout");
+      const currentCheckin = '{{ booking.checkin|date:"Y-m-d" }}';
+      const currentCheckout = '{{ booking.checkout|date:"Y-m-d" }}';
+
+      const newCheckin = checkinInput.value;
+      const newCheckout = checkoutInput.value;
+
+      // Verificar si hay fechas seleccionadas
+      if (!newCheckin || !newCheckout) {
+        alert("Por favor, seleccione ambas fechas.");
+        return;
+      }
+
+      // Verificar si las fechas han cambiado
+      if (newCheckin === currentCheckin && newCheckout === currentCheckout) {
+        alert("No se han realizado cambios en las fechas.");
+        return;
+      }
+
+      // Formatear fechas para mostrar
+      const checkinFormatted = new Date(newCheckin).toLocaleDateString("es-ES");
+      const checkoutFormatted = new Date(newCheckout).toLocaleDateString(
+        "es-ES"
+      );
+
+      // Actualizar el modal con las nuevas fechas
+      document.getElementById("new-checkin-display").textContent =
+        checkinFormatted;
+      document.getElementById("new-checkout-display").textContent =
+        checkoutFormatted;
+
+      // Guardar referencia al formulario
+      formToSubmit = this;
+
+      // Mostrar el modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("confirmModal")
+      );
+      modal.show();
+    });
+
+  // Manejar la confirmación
+  document
+    .getElementById("confirm-changes")
+    .addEventListener("click", function () {
+      if (formToSubmit) {
+        // Cerrar el modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("confirmModal")
+        );
+        modal.hide();
+
+        // Enviar el formulario
+        formToSubmit.submit();
+      }
+    });
+</script>
+
+{% endblock %}
